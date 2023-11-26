@@ -1,0 +1,20 @@
+using ReactiveState.Core;
+
+namespace {{info.target_namespace}};
+
+internal class {{info.target_class_name}}{{- if info.message_types -}} : {{- $first = true -}}{{ for messagetype in info.message_types -}}
+{{- if !$first }}, {{ end -}}IEffect<{{ messagetype }}>{{- $first = false -}}{{ end }}{{- end }}
+{
+    private readonly {{info.class_type}} {{info.inject_param_name}};
+
+    public {{info.target_class_name}}({{info.class_type}} origin)
+    {
+        {{info.inject_param_name}} = origin ?? throw new ArgumentNullException(nameof(origin));
+    }
+
+    {{- if info.method_calls -}}
+    {{ for mcall in info.method_calls }}
+    public Task Process({{ mcall.message_type }} message) => {{mcall.method_call}}.Process(message);
+    {{ end }}
+    {{- end }}
+}

@@ -7,9 +7,23 @@
 
 		<!-- Fixes https://github.com/dotnet/roslyn-analyzers/blob/main/src/Microsoft.CodeAnalysis.Analyzers/Microsoft.CodeAnalysis.Analyzers.md#rs1036-specify-analyzer-banned-api-enforcement-setting -->
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+		<LangVersion>latest</LangVersion>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.4.0" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.7.0" PrivateAssets="all" />
 		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+		<PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
+		<PackageReference Include="Scriban" Version="5.9.0" IncludeAssets="Build" />
 	</ItemGroup>
+	<PropertyGroup>
+		<PackageScribanIncludeSource>true</PackageScribanIncludeSource>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Remove="Templates\**\*.scriban" />
+		<EmbeddedResource Include="Templates\**\*.scriban" />
+	</ItemGroup>
+	<!--<ItemGroup>
+		<CompilerVisibleProperty Include="RootNamespace" />
+	</ItemGroup>-->
 </Project>

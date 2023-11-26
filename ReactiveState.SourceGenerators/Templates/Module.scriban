@@ -1,0 +1,39 @@
+using ReactiveState;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using ReactiveState.Core;
+namespace {{state_info.root_namespace}}
+{
+    public static class {{state_info.state_name}}Module
+    {
+
+        public static ReactiveStateModule AddState(this ReactiveStateModule module, ServiceLifetime serviceLifetime)
+        {
+            return Add{{state_info.state_name}}(module, serviceLifetime);
+        }
+        public static ReactiveStateModule Add{{state_info.state_name}}(this ReactiveStateModule module, ServiceLifetime serviceLifetime)
+        {
+            module.Services.TryAdd(ServiceDescriptor.Describe(typeof(IState<{{state_info.state_type}}>),typeof({{state_info.store_type}}),serviceLifetime));
+            RegisterReduces(module.Services,serviceLifetime);
+            return module;
+        }
+
+        private static void RegisterReduces(IServiceCollection services, ServiceLifetime serviceLifetime)
+        {
+            if (services == null) throw new ArgumentNullException(nameof(services));
+
+            {{ for reducer in state_info.reducer_infos }}
+                {{ if reducer.should_inject }}
+                    // Register the {{reducer.reducer_name}} itself
+                    services.TryAdd(ServiceDescriptor.Describe(typeof({{ reducer.reducer_type }}), typeof({{ reducer.reducer_type }}), serviceLifetime));
+
+                    // Register {{reducer.reducer_name}} for each interface it implements
+                    {{ for reducer_interface in reducer.reducer_interfaces }}
+                    services.TryAdd(ServiceDescriptor.Describe(typeof({{ reducer_interface }}),
+                        provider => provider.GetRequiredService<{{ reducer.reducer_type }}>(), serviceLifetime));
+                    {{ end }}
+                {{ end }}
+            {{ end }}
+        }
+    }
+}

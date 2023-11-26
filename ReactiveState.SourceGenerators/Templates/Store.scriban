@@ -1,0 +1,87 @@
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using ReactiveState.Core;
+#nullable enable
+namespace {{ state_info.store_namespace }}
+{
+    internal class {{ state_info.store_class_name }} : IState<{{ state_info.state_type }}>
+    {
+        // Primary Field Declarations
+        private readonly BehaviorSubject<{{ state_info.state_type }}> _stateSubject;
+        private CompositeDisposable _disposable =new();
+        private readonly IDispatcher _dispatcher;
+        public {{ state_info.state_type }} CurrentState => _stateSubject.Value;
+        private bool _isDisposed = false;
+        private readonly object _disposeLock = new object();
+        // Reducer Field Declarations
+        {{ for reducer in state_info.should_inject }}
+         private readonly {{ reducer.reducer_type }} _{{ reducer.reducer_name | string.downcase }};
+        {{ end }}
+        // Constructor
+        public {{ state_info.store_class_name }}(IStateInitializer<{{ state_info.state_type }}> initializer, IDispatcher dispatcher{{ for reducer in state_info.should_inject }}, {{ reducer.reducer_type }} {{ reducer.reducer_name | string.downcase }}{{ end }})
+        {
+            ArgumentNullException.ThrowIfNull(initializer);
+            ArgumentNullException.ThrowIfNull(dispatcher);
+            {{ for reducer in state_info.should_inject }}
+            ArgumentNullException.ThrowIfNull({{ reducer.reducer_name | string.downcase }});
+            {{ end }}
+            var initState = initializer.GetInitializeState();
+            _stateSubject = new BehaviorSubject<{{ state_info.state_type }}>(initState);
+            _dispatcher = dispatcher;
+            {{ for reducer in state_info.should_inject }}
+            _{{ reducer.reducer_name | string.downcase }} = {{ reducer.reducer_name | string.downcase }};
+            {{ end }}
+            RegisterToDispatcher();
+        }
+
+        void RegisterToDispatcher()
+        {
+            if (_isDisposed)
+                    throw new ObjectDisposedException(nameof({{ state_info.store_class_name }}));
+            {{- for reducer in state_info.reducer_infos -}}
+            {{- for action in reducer.actions -}}
+            var {{ action.action_name | string.downcase }}Subscription = _dispatcher.OfType<{{ action.action_type }}>()
+                .Subscribe(action => HandleAction(action), ex => HandleSubscriptionError(ex));
+            _disposable.Add({{ action.action_name |  string.downcase }}Subscription);
+            {{- end -}}
+            {{- end -}}
+        }
+
+        private void HandleSubscriptionError(Exception ex)
+        {
+            // Log the exception or handle it as required
+            // Example: Console.WriteLine($"Error in subscription: {ex.Message}");
+        }
+
+        // HandleActionMethods
+        {{ for reducer in state_info.reducer_infos }}
+        {{ for action in reducer.actions }}
+        private void HandleAction({{ action.action_type }} action)
+        {
+            var newState = {{ if action.is_static }}{{reducer.reducer_name}}{{ else }}_{{ reducer.reducer_name | string.downcase }}{{ end }}.{{ action.executor_method_name }}(CurrentState, action);
+            _stateSubject.OnNext(newState);
+        }
+        {{ end }}
+        {{ end }}
+        // DisposeMethod
+        public void Dispose()
+        {
+            lock (_disposeLock)
+            {
+                if (_isDisposed) return;
+
+                _stateSubject.Dispose();
+                _disposable?.Dispose();
+                _isDisposed = true;
+             }
+        }
+        // SubscribeMethod
+        public IDisposable Subscribe(IObserver<{{ state_info.state_type }}> observer)
+        {
+            if (_isDisposed)
+                    throw new ObjectDisposedException(nameof({{ state_info.store_class_name }}));
+            return _stateSubject.Subscribe(observer);
+        }
+    }
+}
